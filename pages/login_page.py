@@ -7,6 +7,7 @@ class LoginPage:
         self.password_input = page.locator("[data-test=\"password\"]")
         self.login_button = page.locator("[data-test=\"login-button\"]")
         self.error_message = page.locator("[data-test='error']")
+        self.header_swaglab = page.locator("[data-test=\"primary-header\"]")
 
     def navigation(self):
         self.page.goto("https://www.saucedemo.com/")
@@ -18,5 +19,4 @@ class LoginPage:
 
     def get_error_text(self):
         return self.error_message.inner_text()
-    
     
