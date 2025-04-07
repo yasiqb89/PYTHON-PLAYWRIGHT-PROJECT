@@ -8,21 +8,29 @@ This project targets the [Swag Labs](https://www.saucedemo.com/) demo app, with 
 
 ## 📁 Project Structure
 
-├── .github/workflows/        # GitHub Actions CI
-│   └── playwright-tests.yml
-├── pages/                    # Page Object Model classes
+<pre>
+PYTHON-PLAYWRIGHT-PROJECT/
+├── .github/
+│   └── workflows/
+│       └── playwright-tests.yml       # GitHub Actions workflow
+├── pages/                             # Page Object Model (POM) classes
 │   ├── login_page.py
 │   ├── inventory_page.py
 │   ├── checkout_page.py
 │   └── navigation_page.py
-├── tests/                    # Test suites grouped by feature
+├── tests/                             # All test files
+│   ├── __init__.py
 │   ├── test_login.py
+│   ├── test_invalid_login.py
 │   ├── test_inventory.py
 │   ├── test_checkout.py
 │   └── test_navigation.py
-├── conftest.py               # Shared fixtures like Playwright setup
-├── pytest.ini                # Custom markers for selective test execution
-└── requirements.txt          # (Add dependencies if needed)
+├── conftest.py                        # Pytest fixtures (e.g., Playwright setup)
+├── pytest.ini                         # Test markers and config
+├── .gitignore
+└── venv/                              # Virtual environment (excluded from Git)
+</pre>
+
 
 
 ## ✅ Features Tested
