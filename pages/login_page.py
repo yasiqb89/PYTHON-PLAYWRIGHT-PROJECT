@@ -9,7 +9,7 @@ class LoginPage:
         self.error_message = page.locator("[data-test='error']")
         self.header_swaglab = page.locator("[data-test=\"primary-header\"]")
 
-    def navigation(self):
+    def goto_url(self):
         self.page.goto("https://www.saucedemo.com/")
     
     def login(self, username: str, password: str):

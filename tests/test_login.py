@@ -5,7 +5,7 @@ from pages.login_page import LoginPage
 
 def test_valid_login(page: Page):
     login_page = LoginPage(page)
-    login_page.navigation()
+    login_page.goto_url()
     login_page.login("standard_user", "secret_sauce")
 
     # Validate login access using text and url validation
@@ -14,7 +14,7 @@ def test_valid_login(page: Page):
 
 def test_invalid_login(page: Page):
     login_page = LoginPage(page)
-    login_page.navigation()
+    login_page.goto_url()
     login_page.login("invalid_user", "wrong_password")
 
     # Validate using text
@@ -23,7 +23,7 @@ def test_invalid_login(page: Page):
 
 def test_locked_out_user_login(page):
     login_page = LoginPage(page)
-    login_page.navigation()
+    login_page.goto_url()
     login_page.login("locked_out_user", "secret_sauce")
 
     # Validate using assert on text
@@ -38,7 +38,7 @@ def test_locked_out_user_login(page):
 def test_invalid_credentials(page: Page, username, password, expected_error):
     "Testing login page with invalid login credentials"
     login_page = LoginPage(page)
-    login_page.navigation()
+    login_page.goto_url()
     login_page.login(username, password)
 
     #Check error message
