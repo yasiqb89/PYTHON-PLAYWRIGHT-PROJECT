@@ -46,3 +46,8 @@ def test_invalid_credentials(page: Page, username, password, expected_error):
     error_message = login_page.error_message
     expect(error_message).to_have_text(expected_error)
 
+
+def test_logout_session(page: Page):
+    "to be implemented"
+    pass
+    
