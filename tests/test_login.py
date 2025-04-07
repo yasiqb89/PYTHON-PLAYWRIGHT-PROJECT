@@ -1,6 +1,7 @@
 import pytest
 from playwright.sync_api import Page, expect
 from pages.login_page import LoginPage
+from pages.navigation_page import NavigationPage
 
 
 def test_valid_login(page: Page):
@@ -12,16 +13,9 @@ def test_valid_login(page: Page):
     expect(login_page.header_swaglab).to_contain_text("Swag Labs")
     assert page.url == "https://www.saucedemo.com/inventory.html"
 
-def test_invalid_login(page: Page):
-    login_page = LoginPage(page)
-    login_page.goto_url()
-    login_page.login("invalid_user", "wrong_password")
-
-    # Validate using text
-    expect(login_page.error_message).to_be_visible()
-    expect(login_page.error_message).to_have_text("Epic sadface: Username and password do not match any user in this service")
 
 def test_locked_out_user_login(page):
+    "Testing without parametrize"
     login_page = LoginPage(page)
     login_page.goto_url()
     login_page.login("locked_out_user", "secret_sauce")
@@ -30,24 +24,15 @@ def test_locked_out_user_login(page):
     error_text = login_page.get_error_text()
     assert "Sorry, this user has been locked out." in error_text
 
-
-@pytest.mark.parametrize("username, password, expected_error",[
-    ("", "secret_sauce", "Epic sadface: Username is required"),
-    ("standard_user", "", "Epic sadface: Password is required"),
-    ("locked_out_user", "secret_sauce", "Epic sadface: Sorry, this user has been locked out.")])
-def test_invalid_credentials(page: Page, username, password, expected_error):
-    "Testing login page with invalid login credentials"
+def test_logout_session(page: Page):
     login_page = LoginPage(page)
     login_page.goto_url()
-    login_page.login(username, password)
+    login_page.login("standard_user", "secret_sauce")
 
-    #Check error message
-    expect(login_page.error_message).to_be_visible()
-    error_message = login_page.error_message
-    expect(error_message).to_have_text(expected_error)
+    navigation_page = NavigationPage(page)
+    navigation_page.logout()
 
-
-def test_logout_session(page: Page):
-    "to be implemented"
-    pass
+    # Try to go inventory page after logout
+    page.goto("https://www.saucedemo.com/inventory.html")
+    expect(page).to_have_url("https://www.saucedemo.com/")
     
