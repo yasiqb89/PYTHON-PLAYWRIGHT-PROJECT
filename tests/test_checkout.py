@@ -4,6 +4,8 @@ from pages.inventory_page import InventoryPage
 from pages.checkout_page import CheckoutPage
 from playwright.sync_api import Page, expect 
 
+pytestmark = pytest.mark.checkout
+
 def test_complete_chekout(page:Page):
     "End to End test: Login -> Add item -> Checkout -> Order confirmation"
 
@@ -19,6 +21,7 @@ def test_complete_chekout(page:Page):
     checkout_page.enter_shipping_details("John", "Wick", "123")
     checkout_page.complete_checkout()
     expect(checkout_page.order_success_message).to_have_text("Thank you for your order!")
+
 
 @pytest.mark.parametrize("username", ["standard_user", "standard_user", "standard_user"]) # Only these "standard_username" work on the used website
 def test_complete_checkout_multiple_users(page:Page, username):
@@ -36,6 +39,7 @@ def test_complete_checkout_multiple_users(page:Page, username):
     checkout_page.enter_shipping_details("John", "Wick", "123")
     checkout_page.complete_checkout()
     expect(checkout_page.order_success_message).to_have_text("Thank you for your order!")
+
 
 @pytest.mark.parametrize("first_name, last_name, postal_code, expected_error",[
     ("", "Wick", "12345", "Error: First Name is required"),

@@ -3,7 +3,9 @@ from playwright.sync_api import Page, expect
 from pages.login_page import LoginPage
 from pages.navigation_page import NavigationPage
 
+pytestmark = pytest.mark.login
 
+@pytest.mark.login # Can use marker for separate tests as well, instead of whole file. 
 def test_valid_login(page: Page):
     login_page = LoginPage(page)
     login_page.goto_url()
@@ -13,7 +15,7 @@ def test_valid_login(page: Page):
     expect(login_page.header_swaglab).to_contain_text("Swag Labs")
     assert page.url == "https://www.saucedemo.com/inventory.html"
 
-
+@pytest.mark.login
 def test_locked_out_user_login(page):
     "Testing without parametrize"
     login_page = LoginPage(page)

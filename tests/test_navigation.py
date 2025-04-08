@@ -4,6 +4,8 @@ from pages.inventory_page import InventoryPage
 from pages.navigation_page import NavigationPage
 from playwright.sync_api import Page, expect
 
+pytestmark = pytest.mark.navigation
+
 def test_navigate_to_all_items(page:Page):
     login_page = LoginPage(page)
     login_page.goto_url()

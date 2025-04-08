@@ -5,6 +5,8 @@ from pages.checkout_page import CheckoutPage
 from pages.navigation_page import NavigationPage
 from playwright.sync_api import Page, expect
 
+pytestmark = pytest.mark.inventory
+
 def test_inventory_page_product_list(page: Page):
     login_page = LoginPage(page)
     login_page.goto_url()
