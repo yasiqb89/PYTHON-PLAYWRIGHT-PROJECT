@@ -3,7 +3,7 @@ from pages.login_page import LoginPage
 from playwright.sync_api import Page, expect
 
 
-
+@pytest.mark.invalid_login
 def test_invalid_login_password(page: Page):
     "Testing without parameters"
     login_page = LoginPage(page)
@@ -12,6 +12,7 @@ def test_invalid_login_password(page: Page):
 
     expect(login_page.error_message).to_be_visible()
     expect(login_page.error_message).to_have_text("Epic sadface: Username and password do not match any user in this service")
+    
 
 @pytest.mark.parametrize("username, password, expected_error",[
     ("", "secret_sauce", "Epic sadface: Username is required"),
