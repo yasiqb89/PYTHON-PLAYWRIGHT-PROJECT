@@ -5,6 +5,7 @@ from pages.navigation_page import NavigationPage
 
 pytestmark = pytest.mark.login
 
+
 @pytest.mark.login # Can use marker for separate tests as well, instead of whole file. 
 def test_valid_login(page: Page):
     login_page = LoginPage(page)
