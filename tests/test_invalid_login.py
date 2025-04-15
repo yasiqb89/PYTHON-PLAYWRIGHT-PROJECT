@@ -15,6 +15,7 @@ def test_invalid_login_password(page: Page):
     expect(login_page.error_message).to_have_text("Epic sadface: Username and password do not match any user in this service")
     
 
+@pytest.mark.invalid_login
 @pytest.mark.parametrize("username, password, expected_error",[
     ("", "secret_sauce", "Epic sadface: Username is required"),
     ("standard_user", "", "Epic sadface: Password is required"),
@@ -29,7 +30,7 @@ def test_login_with_invalid_credentials(page:Page, username, password, expected_
     error_message = page.locator("[data-test='error']")
     expect(error_message).to_have_text(expected_error)
 
-@pytest.mark.login
+@pytest.mark.invalid_login
 @pytest.mark.parametrize("data", invalid_credentials)
 def test_login_with_test_data(page:Page, data):
     "Testing login page with invalid login credentials using dict-based test data"
@@ -40,10 +41,3 @@ def test_login_with_test_data(page:Page, data):
     #check error message
     error_message = page.locator("[data-test='error']")
     expect(error_message).to_have_text(data["error"])
-    
-    
-
-
-
-
-
