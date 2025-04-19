@@ -13,8 +13,6 @@ invalid_credentials = [
 ]
 
 
-locked_out_user = {
-    "username": "locked_out_user",
-    "password": "secret_sauce",
-    "error": "Epic sadface: Sorry, this user has been locked out."
-}
+locked_out_user = [
+    {"username": "locked_out_user", "password": "secret_sauce", "error": "Epic sadface: Sorry, this user has been locked out."}
+]

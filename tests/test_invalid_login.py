@@ -1,6 +1,6 @@
 import pytest
 from pages.login_page import LoginPage
-from test_data.login_data import invalid_credentials
+from test_data.login_data import invalid_credentials, locked_out_user
 from playwright.sync_api import Page, expect
 
 
@@ -19,7 +19,7 @@ def test_invalid_login_password(page: Page):
 @pytest.mark.parametrize("username, password, expected_error",[
     ("", "secret_sauce", "Epic sadface: Username is required"),
     ("standard_user", "", "Epic sadface: Password is required"),
-    ("locked_out_user", "secret_sauce", "Epic sadface: Sorry, this user has been locked out.")])
+    ("invalid_user", "wrong", "Epic sadface: Username and password do not match any user in this service")])
 def test_login_with_invalid_credentials(page:Page, username, password, expected_error):
     "Testing login page with invalid login credentials, and parameters"
     login_page = LoginPage(page)
@@ -29,6 +29,18 @@ def test_login_with_invalid_credentials(page:Page, username, password, expected_
     #Check error message
     error_message = page.locator("[data-test='error']")
     expect(error_message).to_have_text(expected_error)
+
+@pytest.mark.invalid_login
+@pytest.mark.parametrize("data", locked_out_user)
+def test_lockedout_user(page:Page, data):
+    "Testing locked out user"
+    loging_page = LoginPage(page)
+    loging_page.goto_url()
+    loging_page.login(data["username"], data["password"])
+
+    error_message = page.locator("[data-test='error']")
+    expect(error_message).to_have_text(data["error"])
+
 
 @pytest.mark.invalid_login
 @pytest.mark.parametrize("data", invalid_credentials)
