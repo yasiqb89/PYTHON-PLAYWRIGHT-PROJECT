@@ -9,7 +9,8 @@ valid_credentials = {
 invalid_credentials = [
     {"username": "", "password": "", "error": "Epic sadface: Username is required"},
     {"username": "standard_user", "password": "", "error": "Epic sadface: Password is required"},
-    {"username": "invalid_user", "password": "wrong", "error": "Epic sadface: Username and password do not match any user in this service"}
+    {"username": "invalid_user", "password": "wrong", "error": "Epic sadface: Username and password do not match any user in this service"},
+    {"username": "😈" * 1000, "password": "!@#$%^&*()_+{}|:<>?~`" * 20, "error": "Epic sadface: Username and password do not match any user in this service"}
 ]
 
 
