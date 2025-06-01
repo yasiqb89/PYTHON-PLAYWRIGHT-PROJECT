@@ -1,5 +1,6 @@
 name: Login Tests
 
+#one dispatch
 on:
   workflow_dispatch:
 
