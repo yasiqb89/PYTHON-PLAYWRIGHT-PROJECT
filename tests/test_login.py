@@ -5,7 +5,7 @@ from pages.navigation_page import NavigationPage
 
 pytestmark = pytest.mark.login
 
-
+@pytest.mark.smoke
 @pytest.mark.login # Can use marker for separate tests as well, instead of whole file. 
 def test_valid_login(page: Page):
     login_page = LoginPage(page)
@@ -16,6 +16,7 @@ def test_valid_login(page: Page):
     expect(login_page.header_swaglab).to_contain_text("Swag Labs")
     assert page.url == "https://www.saucedemo.com/inventory.html"
 
+@pytest.mark.smoke
 @pytest.mark.login
 def test_locked_out_user_login(page):
     "Testing without parametrize"
@@ -27,6 +28,7 @@ def test_locked_out_user_login(page):
     error_text = login_page.get_error_text()
     assert "Sorry, this user has been locked out." in error_text
 
+@pytest.mark.smoke
 def test_logout_session(page: Page):
     login_page = LoginPage(page)
     login_page.goto_url()

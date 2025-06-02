@@ -6,6 +6,7 @@ from playwright.sync_api import Page, expect
 
 pytestmark = pytest.mark.navigation
 
+@pytest.mark.smoke
 def test_navigate_to_all_items(page:Page):
     login_page = LoginPage(page)
     login_page.goto_url()

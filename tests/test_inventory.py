@@ -7,6 +7,7 @@ from playwright.sync_api import Page, expect
 
 pytestmark = pytest.mark.inventory
 
+@pytest.mark.smoke
 @pytest.mark.inventory
 def test_inventory_page_product_list(page: Page):
     login_page = LoginPage(page)
@@ -23,6 +24,7 @@ def test_inventory_page_product_list(page: Page):
     assert len(product_names) > 0
     assert "Sauce Labs Backpack" in product_names
 
+@pytest.mark.smoke
 def test_product_detail(page: Page):
     """When a user clicks a product (e.g. “Sauce Labs Backpack”),
     they are navigated to the correct product page, and the details (name, price, description) match"""
@@ -46,6 +48,7 @@ def test_product_detail(page: Page):
     assert actual_price == expected_price
     assert actual_desc == expected_desc
     
+@pytest.mark.smoke    
 def test_add_item_to_cart(page: Page):
     "Testing adding an item to the cart"
     login_page = LoginPage(page)
