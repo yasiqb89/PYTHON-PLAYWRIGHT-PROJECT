@@ -28,9 +28,18 @@ jobs:
       - name: Run Smoke Tests
         run: pytest -m smoke tests --maxfail=1 --disable-warnings --html=reports/login-report.html --self-contained-html
 
-      - name: Upload Login Test Report
+      - name: Upload Smoke Test Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: login-test-report
-          path: reports/login-report.html
+          name: login-smoke-report
+          path: reports/smoke-report.html
+
+      - name: Send Slack notification
+        if: always()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{
+            "text": "✅ *Smoke Tests Completed*.\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Report>"
+          }' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
