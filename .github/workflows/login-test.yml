@@ -34,3 +34,12 @@ jobs:
         with:
           name: login-test-report
           path: reports/login-report.html
+
+      - name: Send Slack notification
+        if: always()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{
+            "text": "✅ *Login Tests Completed*.\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Report>"
+          }' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
