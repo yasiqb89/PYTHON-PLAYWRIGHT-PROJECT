@@ -60,6 +60,6 @@ jobs:
       - name: Push report to gh-pages
         run: |
           cd gh-pages
-          git add login-report.html
+          git add index.html
           git commit -m "Update login report $(date)"
           git push origin gh-pages
