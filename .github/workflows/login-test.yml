@@ -40,7 +40,7 @@ jobs:
         run: |
           curl -X POST -H 'Content-type: application/json' \
           --data '{
-            "text": "✅ *Login Tests Completed*.\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Report>"
+            "text": "✅ *Login Tests Completed*.\n📄 <https://yasiqb89.github.io/gh-pages/|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
           }' \
           ${{ secrets.SLACK_WEBHOOK_URL }}
 
