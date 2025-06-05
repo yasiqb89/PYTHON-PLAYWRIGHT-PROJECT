@@ -55,7 +55,7 @@ jobs:
 
       - name: Copy report to gh-pages
         run: |
-          cp reports/login-report.html gh-pages/login-report.html
+          cp reports/login-report.html gh-pages/index.html
 
       - name: Push report to gh-pages
         run: |
