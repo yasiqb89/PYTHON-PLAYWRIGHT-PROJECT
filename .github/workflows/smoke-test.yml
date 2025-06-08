@@ -43,3 +43,23 @@ jobs:
             "text": "✅ *Smoke Tests Completed*.\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Report>"
           }' \
           ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+      - name: Clone gh-pages branch
+        run: |
+          git clone --branch gh-pages https://x-access-token:${{ secrets.GH_PAGES_TOKEN }}@github.com/yasiqb89/gh-pages.git gh-pages
+
+      - name: Copy report to gh-pages
+        run: |
+          cp reports/smoke-report.html gh-pages/index.html
+
+      - name: Push report to gh-pages
+        run: |
+          cd gh-pages
+          git add index.html
+          git commit -m "Update smoke report $(date)"
+          git push origin gh-pages
