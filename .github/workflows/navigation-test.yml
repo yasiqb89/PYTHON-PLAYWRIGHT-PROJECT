@@ -26,7 +26,7 @@ jobs:
         run: playwright install --with-deps
 
       - name: Run Navigation Tests
-        run: pytest -m navigation tests --maxfail=1 --disable-warnings --html=reports/login-report.html --self-contained-html
+        run: pytest -m navigation tests --maxfail=1 --disable-warnings --html=reports/navigation-report.html --self-contained-html
 
       - name: Upload Navigation Test Report
         if: always()

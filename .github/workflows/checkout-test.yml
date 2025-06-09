@@ -26,7 +26,7 @@ jobs:
         run: playwright install --with-deps
 
       - name: Run Checkout Tests
-        run: pytest -m checkout tests --maxfail=1 --disable-warnings --html=reports/login-report.html --self-contained-html
+        run: pytest -m checkout tests --maxfail=1 --disable-warnings --html=reports/checkout-report.html --self-contained-html
 
       - name: Upload Checkout Test Report
         if: always()

@@ -26,7 +26,7 @@ jobs:
         run: playwright install --with-deps
 
       - name: Run Inventory Tests
-        run: pytest -m inventory tests --maxfail=1 --disable-warnings --html=reports/login-report.html --self-contained-html
+        run: pytest -m inventory tests --maxfail=1 --disable-warnings --html=reports/inventory-report.html --self-contained-html
 
       - name: Upload Inventory Test Report
         if: always()
