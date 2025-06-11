@@ -11,8 +11,13 @@ This project targets the [Swag Labs](https://www.saucedemo.com/) demo app, with 
 <pre>
 PYTHON-PLAYWRIGHT-PROJECT/
 ├── .github/
-│   └── workflows/
-│       └── playwright-tests.yml       # GitHub Actions workflow
+│   └── workflows/                      # GitHub Actions workflow
+│       ├── playwright-tests.yml
+│       ├── inventory_tests.yml
+│       ├── login_tests.yml  
+│       ├── checkout_tests.yml
+|       ├── smoke_tests.yml
+│       └── navigation_tests.yml           
 ├── pages/                             # Page Object Model (POM) classes
 │   ├── login_page.py
 │   ├── inventory_page.py
