@@ -72,7 +72,8 @@ jobs:
       - name: Copy report to gh-pages
         run: |
           # cp reports/navigation-report.html gh-pages/index.html 
-          cp reports/${{ env.REPORT_NAME }} gh-pages/${{ env.REPORT_NAME }}
+          cp reports/${{ env.REPORT_NAME }} gh-pages/${{ env.REPORT_NAME }} 
+          cp reports/${{ env.REPORT_NAME }} gh-pages/index.html
 
       - name: Push report to gh-pages
         run: |
