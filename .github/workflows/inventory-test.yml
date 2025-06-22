@@ -26,21 +26,24 @@ jobs:
         run: playwright install --with-deps
 
       - name: Run Inventory Tests
-        run: pytest -m inventory tests --maxfail=1 --disable-warnings --html=reports/inventory-report.html --self-contained-html
+        run: |
+          REPORT_NAME="inventory-report-${{ github.run_id }}.html"
+          echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_ENV
+          pytest -m inventory tests --maxfail=1 --disable-warnings --html=reports/$REPORT_NAME --self-contained-html
 
       - name: Upload Inventory Test Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: inventory-test-report
-          path: reports/inventory-report.html
+          path: reports/${{ env.REPORT_NAME }}
 
       - name: Send Slack notification
         if: always()
         run: |
           curl -X POST -H 'Content-type: application/json' \
           --data '{
-            "text": "✅ *Inventory Tests Completed*.\n📄 <https://yasiqb89.github.io/gh-pages/|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
+            "text": "✅ *Inventory Tests Completed*.\n📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
           }' \
           ${{ secrets.SLACK_WEBHOOK_URL }}
 
@@ -55,11 +58,21 @@ jobs:
 
       - name: Copy report to gh-pages
         run: |
-          cp reports/inventory-report.html gh-pages/index.html
+          cp reports/${{ env.REPORT_NAME }} gh-pages/${{ env.REPORT_NAME }}
+          cp reports/${{ env.REPORT_NAME }} gh-pages/index.html
 
       - name: Push report to gh-pages
         run: |
           cd gh-pages
-          git add index.html
-          git commit -m "Update inventory report $(date)"
+          git add ${{ env.REPORT_NAME }} index.html
+          git commit -m "Add inventory report ${{ env.REPORT_NAME }}"
           git push origin gh-pages
+
+      - name: Send Slack notification
+        if: always()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{
+            "text": "✅ *Inventory Tests Completed*.\n📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
+          }' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
