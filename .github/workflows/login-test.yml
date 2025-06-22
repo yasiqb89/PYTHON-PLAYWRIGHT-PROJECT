@@ -1,6 +1,5 @@
 name: Login Tests
 
-#one dispatch
 on:
   workflow_dispatch:
 
@@ -26,23 +25,17 @@ jobs:
         run: playwright install --with-deps
 
       - name: Run Login Tests
-        run: pytest -m login tests --maxfail=1 --disable-warnings --html=reports/login-report.html --self-contained-html
+        run: |
+          REPORT_NAME=login-report-${{ github.run_id }}.html
+          echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_ENV
+          pytest -m login tests --maxfail=1 --disable-warnings --html=reports/$REPORT_NAME --self-contained-html
 
       - name: Upload Login Test Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: login-test-report
-          path: reports/login-report.html
-
-      - name: Send Slack notification
-        if: always()
-        run: |
-          curl -X POST -H 'Content-type: application/json' \
-          --data '{
-            "text": "✅ *Login Tests Completed*.\n📄 <https://yasiqb89.github.io/gh-pages/|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
-          }' \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+          path: reports/${{ env.REPORT_NAME }}
 
       - name: Configure Git
         run: |
@@ -55,11 +48,21 @@ jobs:
 
       - name: Copy report to gh-pages
         run: |
-          cp reports/login-report.html gh-pages/index.html
+          cp reports/${{ env.REPORT_NAME }} gh-pages/${{ env.REPORT_NAME }}
+          cp reports/${{ env.REPORT_NAME }} gh-pages/index.html
 
       - name: Push report to gh-pages
         run: |
           cd gh-pages
-          git add index.html
+          git add .
           git commit -m "Update login report $(date)"
           git push origin gh-pages
+
+      - name: Send Slack notification
+        if: always()
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+          --data '{
+            "text": "✅ *Login Tests Completed*\n📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
+          }' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
