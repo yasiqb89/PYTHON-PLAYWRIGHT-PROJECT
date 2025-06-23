@@ -8,6 +8,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      # ──────────────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -28,7 +29,8 @@ jobs:
         run: |
           REPORT_NAME=login-report-${{ github.run_id }}.html
           echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_ENV
-          pytest -m login tests --maxfail=1 --disable-warnings --html=reports/$REPORT_NAME --self-contained-html
+          pytest -m login tests --maxfail=1 --disable-warnings \
+                --html=reports/$REPORT_NAME --self-contained-html
 
       - name: Upload Login Test Report
         if: always()
@@ -37,6 +39,8 @@ jobs:
           name: login-test-report
           path: reports/${{ env.REPORT_NAME }}
 
+      # ──────────────────────────────────────────────────────────────
+      # GIT PUBLISH TO GH-PAGES
       - name: Configure Git
         run: |
           git config --global user.email "actions@github.com"
@@ -44,7 +48,8 @@ jobs:
 
       - name: Clone gh-pages branch
         run: |
-          git clone --branch gh-pages https://x-access-token:${{ secrets.GH_PAGES_TOKEN }}@github.com/yasiqb89/gh-pages.git gh-pages
+          git clone --branch gh-pages \
+            https://x-access-token:${{ secrets.GH_PAGES_TOKEN }}@github.com/yasiqb89/gh-pages.git gh-pages
 
       - name: Copy report to gh-pages
         run: |
@@ -55,14 +60,28 @@ jobs:
         run: |
           cd gh-pages
           git add .
-          git commit -m "Update login report $(date)"
+          git commit -m "Add login report ${{ env.REPORT_NAME }}"
           git push origin gh-pages
 
+      # ──────────────────────────────────────────────────────────────
+      # NEW → NOTIFY N8N THAT THE REPORT IS READY
+      - name: Notify n8n that report is ready
+        if: always()
+        run: |
+          curl -X POST -H 'Content-Type: application/json' \
+            -d "{
+                  \"suite\"     : \"login\",
+                  \"run_id\"    : \"${{ github.run_id }}\",
+                  \"report_url\": \"https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}\"
+                }" \
+            ${{ secrets.N8N_WEBHOOK_URL }}
+
+      # ──────────────────────────────────────────────────────────────
       - name: Send Slack notification
         if: always()
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data '{
-            "text": "✅ *Login Tests Completed*\n📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
-          }' \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+            --data '{
+              "text": "✅ *Login Tests Completed*\n📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
+            }' \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
