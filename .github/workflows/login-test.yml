@@ -70,9 +70,9 @@ jobs:
         run: |
           curl -X POST -H 'Content-Type: application/json' \
             -d "{
-                  \"suite\"     : \"login\",
-                  \"run_id\"    : \"${{ github.run_id }}\",
-                  \"report_url\": \"https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}\"
+                  \"suite\"      : \"login\",
+                  \"run_id\"     : \"${GITHUB_RUN_ID}\",
+                  \"report_url\" : \"https://yasiqb89.github.io/gh-pages/${REPORT_NAME}\"
                 }" \
             ${{ secrets.N8N_WEBHOOK_URL }}
 
