@@ -38,6 +38,7 @@ jobs:
           name: checkout-test-report
           path: reports/${{ env.REPORT_NAME }}
 
+      #GIT PUBLISH TO GH-PAGES
       - name: Configure Git
         run: |
           git config --global user.email "actions@github.com"
@@ -55,10 +56,23 @@ jobs:
       - name: Push report to gh-pages
         run: |
           cd gh-pages
-          git add ${{ env.REPORT_NAME }} index.html
+          git add .
           git commit -m "Add Checkout report ${{ env.REPORT_NAME }}"
           git push origin gh-pages
 
+      #NOTIFY N8N THAT REPORT IS READY
+      - name: Notify n8n that report is ready
+        if: always()
+        run: |
+          curl -X POST -H 'Content-Type: application/json' \
+            -d "{
+                  \"suite\"      : \"checkout\",
+                  \"run_id\"     : \"${GITHUB_RUN_ID}\",
+                  \"report_url\" : \"https://yasiqb89.github.io/gh-pages/${REPORT_NAME}\"
+                }" \
+            ${{ secrets.N8N_WEBHOOK_URL }}
+
+      # MESSAGE TO SLACK
       - name: Send Slack notification
         if: always()
         run: |

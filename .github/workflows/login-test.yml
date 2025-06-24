@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      # ──────────────────────────────────────────────────────────────
+      # SETUP AND RUN TESTS
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -39,7 +39,6 @@ jobs:
           name: login-test-report
           path: reports/${{ env.REPORT_NAME }}
 
-      # ──────────────────────────────────────────────────────────────
       # GIT PUBLISH TO GH-PAGES
       - name: Configure Git
         run: |
@@ -63,8 +62,7 @@ jobs:
           git commit -m "Add login report ${{ env.REPORT_NAME }}"
           git push origin gh-pages
 
-      # ──────────────────────────────────────────────────────────────
-      # NEW → NOTIFY N8N THAT THE REPORT IS READY
+      # NOTIFY N8N THAT THE REPORT IS READY
       - name: Notify n8n that report is ready
         if: always()
         run: |
@@ -76,7 +74,7 @@ jobs:
                 }" \
             ${{ secrets.N8N_WEBHOOK_URL }}
 
-      # ──────────────────────────────────────────────────────────────
+      # MESSAGE TO SLACK
       - name: Send Slack notification
         if: always()
         run: |

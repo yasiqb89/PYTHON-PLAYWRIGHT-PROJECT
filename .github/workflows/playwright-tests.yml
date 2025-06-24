@@ -1,12 +1,15 @@
 name: Playwright Tests
 
-on: [push, pull_request]
+on: # still runs on every push / PR
+  push:
+  pull_request:
 
 jobs:
   test:
     runs-on: ubuntu-22.04
 
     steps:
+      # SETUP & RUN TESTS
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -27,7 +30,8 @@ jobs:
         run: |
           REPORT_NAME=playwright-report-${{ github.run_id }}.html
           echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_ENV
-          pytest tests --maxfail=1 --disable-warnings --html=reports/$REPORT_NAME --self-contained-html
+          pytest tests --maxfail=1 --disable-warnings \
+                --html=reports/$REPORT_NAME --self-contained-html
 
       - name: Upload Playwright Test Report
         if: always()
@@ -36,14 +40,16 @@ jobs:
           name: playwright-test-report
           path: reports/${{ env.REPORT_NAME }}
 
+      # PUBLISH TO GH-PAGES
       - name: Configure Git
         run: |
           git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
+          git config --global user.name  "GitHub Actions"
 
       - name: Clone gh-pages branch
         run: |
-          git clone --branch gh-pages https://x-access-token:${{ secrets.GH_PAGES_TOKEN }}@github.com/yasiqb89/gh-pages.git gh-pages
+          git clone --branch gh-pages \
+            https://x-access-token:${{ secrets.GH_PAGES_TOKEN }}@github.com/yasiqb89/gh-pages.git gh-pages
 
       - name: Copy report to gh-pages
         run: |
@@ -53,17 +59,28 @@ jobs:
       - name: Push report to gh-pages
         run: |
           cd gh-pages
-          git add ${{ env.REPORT_NAME }} index.html
+          git add .
           git commit -m "Add Playwright report ${{ env.REPORT_NAME }}"
           git push origin gh-pages
 
+      #  NOTIFY N8N
+      - name: Notify n8n that report is ready
+        if: always()
+        run: |
+          curl -X POST -H 'Content-Type: application/json' \
+            -d "{
+                  \"suite\"      : \"playwright\",
+                  \"run_id\"     : \"${GITHUB_RUN_ID}\",
+                  \"report_url\" : \"https://yasiqb89.github.io/gh-pages/${REPORT_NAME}\"
+                }" \
+            ${{ secrets.N8N_WEBHOOK_URL }}
+
+      # SLACK SUMMARY
       - name: Send Slack notification
         if: always()
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data '{
-            "text": "✅ *Playwright Tests Completed*.
-          📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|View HTML Report>
-          🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
-          }' \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+            --data '{
+              "text": "✅ *Playwright Tests Completed*\n📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
+            }' \
+            ${{ secrets.SLACK_WEBHOOK_URL }}
