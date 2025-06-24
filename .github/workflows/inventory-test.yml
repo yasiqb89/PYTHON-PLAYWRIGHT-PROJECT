@@ -40,6 +40,24 @@ jobs:
           name: inventory-test-report
           path: reports/${{ env.REPORT_NAME }}
 
+      # BUILD SUMMARY.JSON WITH FAILURES
+      - name: Extract failed tests → summary.json
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET, json, os, pathlib
+          root  = ET.parse('results.xml')
+          fails = [tc.attrib['classname'] + "::" + tc.attrib['name']
+                  for tc in root.iter('testcase') if tc.find('failure') is not None]
+
+          summary = {
+            "suite"       : os.getenv("SUITE", "inventory"),
+            "run_id"      : os.getenv("GITHUB_RUN_ID"),
+            "report_url"  : f"https://yasiqb89.github.io/gh-pages/{os.getenv('REPORT_NAME')}",
+            "failed_tests": fails
+          }
+          pathlib.Path("summary.json").write_text(json.dumps(summary))
+          PY
+
       # PUBLISH TO GH-PAGES
       - name: Configure Git
         run: |
@@ -67,13 +85,9 @@ jobs:
       - name: Notify n8n that report is ready
         if: always()
         run: |
-          curl -X POST -H 'Content-Type: application/json' \
-            -d "{
-                  \"suite\"      : \"inventory\",
-                  \"run_id\"     : \"${GITHUB_RUN_ID}\",
-                  \"report_url\" : \"https://yasiqb89.github.io/gh-pages/${REPORT_NAME}\"
-                }" \
-            ${{ secrets.N8N_WEBHOOK_URL }}
+          curl -s -X POST -H 'Content-Type: application/json' \
+             --data @summary.json \
+             ${{ secrets.N8N_WEBHOOK_URL }}
 
       # SLACK SUMMARY
       - name: Send Slack notification
