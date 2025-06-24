@@ -31,7 +31,8 @@ jobs:
           REPORT_NAME=playwright-report-${{ github.run_id }}.html
           echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_ENV
           pytest tests --maxfail=1 --disable-warnings \
-                --html=reports/$REPORT_NAME --self-contained-html
+                --html=reports/$REPORT_NAME --self-contained-html \
+                --junitxml=results.xml
 
       - name: Upload Playwright Test Report
         if: always()

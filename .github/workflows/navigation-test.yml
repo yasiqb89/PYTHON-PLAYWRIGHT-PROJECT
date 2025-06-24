@@ -30,7 +30,8 @@ jobs:
           REPORT_NAME=navigation-report-${{ github.run_id }}.html
           echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_ENV
           pytest -m navigation tests --maxfail=1 --disable-warnings \
-                --html=reports/$REPORT_NAME --self-contained-html
+                --html=reports/$REPORT_NAME --self-contained-html \
+                --junitxml=results.xml
 
       - name: Upload Navigation Test Report
         if: always()

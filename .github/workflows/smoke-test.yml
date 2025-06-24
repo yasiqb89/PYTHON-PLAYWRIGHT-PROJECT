@@ -30,7 +30,8 @@ jobs:
           REPORT_NAME=smoke-report-${{ github.run_id }}.html
           echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_ENV
           pytest -m smoke tests --maxfail=1 --disable-warnings \
-                --html=reports/$REPORT_NAME --self-contained-html
+                --html=reports/$REPORT_NAME --self-contained-html \
+                --junitxml=results.xml
 
       - name: Upload Smoke Test Report
         if: always()

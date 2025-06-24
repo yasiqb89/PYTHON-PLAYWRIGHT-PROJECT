@@ -29,7 +29,7 @@ jobs:
         run: |
           REPORT_NAME=checkout-report-${{ github.run_id }}.html
           echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_ENV
-          pytest -m checkout tests --maxfail=1 --disable-warnings --html=reports/$REPORT_NAME --self-contained-html
+          pytest -m checkout tests --maxfail=1 --disable-warnings --html=reports/$REPORT_NAME --self-contained-html --junitxml=results.xml
 
       - name: Upload Checkout Test Report
         if: always()
