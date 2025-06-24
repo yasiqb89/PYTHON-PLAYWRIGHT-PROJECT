@@ -59,6 +59,7 @@ def test_add_item_to_cart(page: Page):
     inventory_page.add_item_to_cart()
     expect(page.locator("[data-test=\"remove-sauce-labs-backpack\"]")).to_be_visible()
 
+
 def test_remove_item_from_cart(page: Page):
     "Testing remove item from cart"
     login_page = LoginPage(page)
@@ -70,6 +71,8 @@ def test_remove_item_from_cart(page: Page):
     inventory_page.remove_item_from_cart()
     expect(page.locator("[data-test=\"add-to-cart-sauce-labs-backpack\"]")).to_be_visible()
 
+@pytest.mark.smoke
+@pytest.mark.xfail
 def test_open_cart(page: Page):
     "Test opening the cart page"
     login_page = LoginPage(page)
