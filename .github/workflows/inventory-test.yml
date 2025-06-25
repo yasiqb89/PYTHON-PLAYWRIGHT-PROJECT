@@ -33,56 +33,7 @@ jobs:
                 --html=reports/$REPORT_NAME --self-contained-html \
                 --junitxml=results.xml
 
-      # --------------- DEBUG: PRINT PART OF XML ---------------
-      - name: DEBUG - Show results.xml head
-        run: |
-          echo "--- HEAD of results.xml ---"
-          head -n 80 results.xml || true
-
-      # BUILD SUMMARY.JSON WITH FAILURES
-      - name: Extract failed tests → summary.json
-        run: |
-          python - <<'PY'
-          import xml.etree.ElementTree as ET, json, os, pathlib, re
-
-          root  = ET.parse('results.xml')
-          failed = []
-
-          for tc in root.iter('testcase'):
-              name = f"{tc.attrib['classname']}::{tc.attrib['name']}"
-
-              # ordinary failures / errors
-              if tc.find('failure') is not None or tc.find('error') is not None:
-                  failed.append(name)
-                  continue
-
-              # xfail / xpass live inside <skipped> with a message
-              skipped = tc.find('skipped')
-              if skipped is not None:
-                  msg = skipped.attrib.get('message', '').lower()
-                  if 'xpass' in msg or 'xfail' in msg:
-                      failed.append(name)
-
-          summary = {
-              "suite"       : os.getenv("SUITE", "inventory"),
-              "run_id"      : os.getenv("GITHUB_RUN_ID"),
-              "report_url"  : f"https://yasiqb89.github.io/gh-pages/{os.getenv('REPORT_NAME')}",
-              "failed_tests": failed            # <-- list can now be empty OR populated
-          }
-          pathlib.Path("summary.json").write_text(json.dumps(summary))
-          PY
-
-      - name: Write extract_failures.py helper
-        run: |
-          mkdir -p scripts
-          cat <<'PY' > scripts/extract_failures.py
-          # ...python code...
-          PY
-
-      - name: Extract failed tests → summary.json
-        run: python scripts/extract_failures.py
-
-      # PUBLISH TO GH-PAGES
+      #PUBLISH REPORT AS ARTIFACT
       - name: Upload Inventory Test Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -90,6 +41,41 @@ jobs:
           name: inventory-test-report
           path: reports/${{ env.REPORT_NAME }}
 
+      - name: Build summary.json (failures only)
+        run: |
+          python - <<'PY'
+          import xml.etree.ElementTree as ET, json, os, pathlib
+
+          root   = ET.parse('results.xml')
+          failed = []
+
+          for tc in root.iter('testcase'):
+              full_name = f"{tc.attrib['classname']}::{tc.attrib['name']}"
+
+              # real failures / errors
+              if tc.find('failure') is not None or tc.find('error') is not None:
+                  failed.append(full_name)
+                  continue
+
+              # xfail / xpass sit inside <skipped>
+              skip = tc.find('skipped')
+              if skip is not None:
+                  msg = (skip.attrib.get('message') or '').lower()
+                  if 'xpass' in msg or 'xfail' in msg:
+                      failed.append(full_name)
+
+          summary = {
+              "suite"       : os.getenv("SUITE", "inventory"),
+              "run_id"      : os.getenv("GITHUB_RUN_ID"),
+              "report_url"  : f"https://yasiqb89.github.io/gh-pages/{os.getenv('REPORT_NAME')}",
+              "failed_tests": failed           # <-- list (empty or not)
+          }
+
+          pathlib.Path("summary.json").write_text(json.dumps(summary))
+          print("summary.json written")
+          PY
+
+      # PUBLISH TO GH-PAGES
       - name: Configure Git
         run: |
           git config --global user.email "actions@github.com"
@@ -117,8 +103,13 @@ jobs:
         if: always()
         run: |
           curl -s -X POST -H 'Content-Type: application/json' \
-             --data @summary.json \
-             ${{ secrets.N8N_WEBHOOK_URL }}
+            -d "{
+                  \"suite\"      : \"inventory\",
+                  \"run_id\"     : \"${GITHUB_RUN_ID}\",
+                  \"report_url\" : \"https://yasiqb89.github.io/gh-pages/${REPORT_NAME}\",
+                  \"failed_tests\"     : \"${{ job.status }}\"
+                }" \
+            ${{ secrets.N8N_WEBHOOK_URL }}
 
       # SLACK SUMMARY
       - name: Send Slack notification
