@@ -1,3 +1,4 @@
+# .github/workflows/inventory-tests.yml
 name: Inventory Tests
 
 on:
@@ -8,8 +9,8 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      # ───────────────────────────────────────────────────────── SET-UP ──
-      - name: Checkout repository
+      # SET-UP
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -17,116 +18,73 @@ jobs:
         with:
           python-version: "3.10.13"
 
-      - name: Install Playwright dependencies
+      - name: Install requirements
         run: |
           python -m pip install --upgrade pip
           pip install pytest-playwright pytest-html
 
-      - name: Install Playwright Browsers
+      - name: Install Playwright browsers
         run: playwright install --with-deps
 
-      # ─────────────────────────────────── RUN TESTS + JUnit & HTML REPORT ──
-      - name: Run Inventory Tests
+      # RUN TESTS & PRODUCE REPORTS
+      - name: Run inventory tests
         run: |
-          REPORT_NAME=inventory-report-${{ github.run_id }}.html
-          echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_ENV
+          REPORT_NAME="inventory-report-${{ github.run_id }}.html"
+          echo "REPORT_NAME=$REPORT_NAME" >> "$GITHUB_ENV"
 
           pytest -m inventory tests --maxfail=1 --disable-warnings \
-                --html=reports/$REPORT_NAME --self-contained-html \
-                --junitxml=results.xml
+                --html="reports/$REPORT_NAME" --self-contained-html \
+                --junitxml="results.xml"            # (keep or remove, not being used right now)
 
-      # publish HTML as artifact (optional)
-      - name: Upload Inventory Test Report
+      # UPLOAD HTML ARTIFACT
+      - name: Upload report artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: inventory-test-report
+          name: inventory-html
           path: reports/${{ env.REPORT_NAME }}
 
-      # ──────────────────────  EXTRACT FAILURES  → summary.json  ──
-      - name: Extract failures → summary.json
-        id: extract
-        run: |
-          python - <<'PY'
-          import json, os, xml.etree.ElementTree as ET, pathlib
-
-          root   = ET.parse("results.xml")
-          fails  = []
-
-          for tc in root.iter("testcase"):
-              full = f"{tc.attrib['classname']}::{tc.attrib['name']}"
-
-              # hard failures / errors
-              if tc.find("failure") is not None or tc.find("error") is not None:
-                  fails.append(full)
-                  continue
-
-              # xfail / xpass live in <skipped>
-              skip = tc.find("skipped")
-              if skip is not None:
-                  msg  = (skip.attrib.get("message", "") or "").lower()
-                  typ  = (skip.attrib.get("type", "")    or "").lower()
-                  if "xfail" in msg or "xpass" in msg or "xfail" in typ or "xpass" in typ:
-                      fails.append(full)
-
-          summary = {
-            "suite"       : "inventory",
-            "run_id"      : os.environ["GITHUB_RUN_ID"],
-            "report_url"  : f"https://yasiqb89.github.io/gh-pages/{os.environ['REPORT_NAME']}",
-            "failed_tests": fails
-          }
-          pathlib.Path("summary.json").write_text(json.dumps(summary, indent=2))
-
-          # expose count for later steps
-          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
-              fh.write(f"failed_count={len(fails)}\n")
-          PY
-
-      - name: Show captured failures
-        run: cat summary.json
-
-      # ───────────────────────────  PUBLISH REPORT TO GH-PAGES ──
-      - name: Configure Git
+      # PUSH REPORT TO THE gh-pages BRANCH
+      - name: Push report to gh-pages
+        if: always()
         run: |
           git config --global user.email "actions@github.com"
           git config --global user.name  "GitHub Actions"
 
-      - name: Clone gh-pages branch
-        run: |
           git clone --branch gh-pages \
             https://x-access-token:${{ secrets.GH_PAGES_TOKEN }}@github.com/yasiqb89/gh-pages.git gh-pages
 
-      - name: Copy report to gh-pages
-        run: |
-          cp reports/${{ env.REPORT_NAME }} gh-pages/${{ env.REPORT_NAME }}
-          cp reports/${{ env.REPORT_NAME }} gh-pages/index.html
+          cp "reports/${REPORT_NAME}" "gh-pages/${REPORT_NAME}"
+          cp "reports/${REPORT_NAME}" "gh-pages/index.html"
 
-      - name: Push report to gh-pages
-        run: |
           cd gh-pages
           git add .
-          git commit -m "Add inventory report ${{ env.REPORT_NAME }}"
+          git commit -m "Add inventory report ${REPORT_NAME}"
           git push origin gh-pages
 
-      # ─────────────────────────  NOTIFY n8n (two paths) ──
-      - name: Notify n8n (all tests passed)
-        if: steps.extract.outputs.failed_count == '0'
+      # NOTIFY n8n
+      - name: Notify n8n
+        if: always()
         run: |
-          curl -s -X POST -H 'Content-Type: application/json' \
-               --data @summary.json ${{ secrets.N8N_WEBHOOK_URL }}
+          cat > payload.json <<EOF
+          {
+            "suite"      : "inventory",
+            "run_id"     : "${GITHUB_RUN_ID}",
+            "report_url" : "https://yasiqb89.github.io/gh-pages/${REPORT_NAME}",
+            "status"     : "${{ job.status }}"
+          }
+          EOF
 
-      - name: Notify n8n (failures present)
-        if: steps.extract.outputs.failed_count != '0'
-        run: |
           curl -s -X POST -H 'Content-Type: application/json' \
-               --data @summary.json ${{ secrets.N8N_BUG_WEBHOOK_URL }}
+               --data @payload.json \
+               ${{ secrets.N8N_WEBHOOK_URL }}
 
-      # ─────────────────────────────  SLACK SUMMARY ──
-      - name: Send Slack notification
+      # SLACK SUMMARY
+      - name: Slack summary
         if: always()
         run: |
           curl -X POST -H 'Content-type: application/json' \
-               --data '{
-                 "text": "✅ *Inventory Tests Completed*\n📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
-               }' \
-               ${{ secrets.SLACK_WEBHOOK_URL }}
+          --data '{
+            "text": "🧪 *Inventory Tests* - *${{ job.status }}* \n📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|HTML Report> \n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
+          }' \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
