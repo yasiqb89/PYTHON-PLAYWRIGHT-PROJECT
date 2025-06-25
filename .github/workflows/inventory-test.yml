@@ -79,13 +79,6 @@ jobs:
                --data @payload.json \
                ${{ secrets.N8N_WEBHOOK_URL }}
 
-          curl -s -X POST \ 
-              -F "file=@results.xml;type=text/xml" \
-              -F "suite=inventory" \
-              -F "run_id=${GITHUB_RUN_ID}" \
-              -F "status=${{ job.status }}" \
-              ${{ secrets.N8N_WEBHOOK_URL }}
-
       # SLACK SUMMARY
       - name: Slack summary
         if: always()
