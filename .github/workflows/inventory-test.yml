@@ -72,6 +72,13 @@ jobs:
           pathlib.Path("summary.json").write_text(json.dumps(summary))
           PY
 
+      - name: Write extract_failures.py helper
+        run: |
+          mkdir -p scripts
+          cat <<'PY' > scripts/extract_failures.py
+          # ...python code...
+          PY
+
       - name: Extract failed tests → summary.json
         run: python scripts/extract_failures.py
 
