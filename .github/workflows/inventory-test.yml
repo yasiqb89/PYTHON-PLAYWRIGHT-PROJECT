@@ -29,6 +29,7 @@ jobs:
         run: |
           REPORT_NAME=inventory-report-${{ github.run_id }}.html
           echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_ENV
+
           pytest -m inventory tests --maxfail=1 --disable-warnings \
                 --html=reports/$REPORT_NAME --self-contained-html \
                 --junitxml=results.xml
@@ -41,38 +42,33 @@ jobs:
           name: inventory-test-report
           path: reports/${{ env.REPORT_NAME }}
 
-      - name: Build summary.json (failures only)
+      - name: Extract failures → summary.json
+        id: extract # <-- so we can read outputs
         run: |
           python - <<'PY'
-          import xml.etree.ElementTree as ET, json, os, pathlib
+          import json, os, xml.etree.ElementTree as ET
 
-          root   = ET.parse('results.xml')
-          failed = []
-
-          for tc in root.iter('testcase'):
-              full_name = f"{tc.attrib['classname']}::{tc.attrib['name']}"
-
-              # real failures / errors
-              if tc.find('failure') is not None or tc.find('error') is not None:
-                  failed.append(full_name)
+          root  = ET.parse("results.xml")
+          fails = []
+          for tc in root.iter("testcase"):
+              name = f"{tc.attrib['classname']}::{tc.attrib['name']}"
+              if tc.find("failure") is not None or tc.find("error") is not None:
+                  fails.append(name)
                   continue
-
-              # xfail / xpass sit inside <skipped>
-              skip = tc.find('skipped')
-              if skip is not None:
-                  msg = (skip.attrib.get('message') or '').lower()
-                  if 'xpass' in msg or 'xfail' in msg:
-                      failed.append(full_name)
+              skipped = tc.find("skipped")
+              if skipped is not None and "xpass" in skipped.attrib.get("message","").lower():
+                  fails.append(name)
 
           summary = {
-              "suite"       : os.getenv("SUITE", "inventory"),
-              "run_id"      : os.getenv("GITHUB_RUN_ID"),
-              "report_url"  : f"https://yasiqb89.github.io/gh-pages/{os.getenv('REPORT_NAME')}",
-              "failed_tests": failed           # <-- list (empty or not)
+            "suite"       : "inventory",
+            "run_id"      : os.environ["GITHUB_RUN_ID"],
+            "report_url"  : f"https://yasiqb89.github.io/gh-pages/{os.environ['REPORT_NAME']}",
+            "failed_tests": fails
           }
+          with open("summary.json","w") as f: json.dump(summary,f)
 
-          pathlib.Path("summary.json").write_text(json.dumps(summary))
-          print("summary.json written")
+          # expose count so later steps can use it
+          print(f"::set-output name=failed_count::{len(fails)}")
           PY
 
       # PUBLISH TO GH-PAGES
@@ -99,17 +95,17 @@ jobs:
           git push origin gh-pages
 
       # NOTIFY N8N
-      - name: Notify n8n that report is ready
-        if: always()
+      - name: Notify n8n (always → success payload)
+        if: steps.extract.outputs.failed_count == '0'
         run: |
           curl -s -X POST -H 'Content-Type: application/json' \
-            -d "{
-                  \"suite\"      : \"inventory\",
-                  \"run_id\"     : \"${GITHUB_RUN_ID}\",
-                  \"report_url\" : \"https://yasiqb89.github.io/gh-pages/${REPORT_NAME}\",
-                  \"failed_tests\"     : \"${{ job.status }}\"
-                }" \
-            ${{ secrets.N8N_WEBHOOK_URL }}
+            --data @summary.json ${{ secrets.N8N_WEBHOOK_URL }}
+
+      - name: Notify n8n (failures present → bug payload)
+        if: steps.extract.outputs.failed_count != '0'
+        run: |
+          curl -s -X POST -H 'Content-Type: application/json' \
+            --data @summary.json ${{ secrets.N8N_BUG_WEBHOOK_URL }}
 
       # SLACK SUMMARY
       - name: Send Slack notification
