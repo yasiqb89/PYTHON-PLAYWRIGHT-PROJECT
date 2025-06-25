@@ -45,22 +45,29 @@ jobs:
 
       # ──────────────────────  EXTRACT FAILURES  → summary.json  ──
       - name: Extract failures → summary.json
-        id: extract # ←-- now we have an ID
+        id: extract
         run: |
           python - <<'PY'
           import json, os, xml.etree.ElementTree as ET, pathlib
 
-          root  = ET.parse("results.xml")
-          fails = []
+          root   = ET.parse("results.xml")
+          fails  = []
 
           for tc in root.iter("testcase"):
               full = f"{tc.attrib['classname']}::{tc.attrib['name']}"
+
+              # hard failures / errors
               if tc.find("failure") is not None or tc.find("error") is not None:
                   fails.append(full)
                   continue
+
+              # xfail / xpass live in <skipped>
               skip = tc.find("skipped")
-              if skip is not None and "xpass" in skip.attrib.get("message","").lower():
-                  fails.append(full)
+              if skip is not None:
+                  msg  = (skip.attrib.get("message", "") or "").lower()
+                  typ  = (skip.attrib.get("type", "")    or "").lower()
+                  if "xfail" in msg or "xpass" in msg or "xfail" in typ or "xpass" in typ:
+                      fails.append(full)
 
           summary = {
             "suite"       : "inventory",
@@ -68,12 +75,15 @@ jobs:
             "report_url"  : f"https://yasiqb89.github.io/gh-pages/{os.environ['REPORT_NAME']}",
             "failed_tests": fails
           }
-          pathlib.Path("summary.json").write_text(json.dumps(summary))
+          pathlib.Path("summary.json").write_text(json.dumps(summary, indent=2))
 
-          # -------- expose failed_count to later steps ----------
+          # expose count for later steps
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"failed_count={len(fails)}\n")
           PY
+
+      - name: Show captured failures
+        run: cat summary.json
 
       # ───────────────────────────  PUBLISH REPORT TO GH-PAGES ──
       - name: Configure Git
