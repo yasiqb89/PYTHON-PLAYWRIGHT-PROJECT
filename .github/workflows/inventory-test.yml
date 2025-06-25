@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      # SETUP & RUN TESTS
+      # ───────────────────────────────────────────────────────── SET-UP ──
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -25,6 +25,7 @@ jobs:
       - name: Install Playwright Browsers
         run: playwright install --with-deps
 
+      # ─────────────────────────────────── RUN TESTS + JUnit & HTML REPORT ──
       - name: Run Inventory Tests
         run: |
           REPORT_NAME=inventory-report-${{ github.run_id }}.html
@@ -34,7 +35,7 @@ jobs:
                 --html=reports/$REPORT_NAME --self-contained-html \
                 --junitxml=results.xml
 
-      #PUBLISH REPORT AS ARTIFACT
+      # publish HTML as artifact (optional)
       - name: Upload Inventory Test Report
         if: always()
         uses: actions/upload-artifact@v4
@@ -42,22 +43,24 @@ jobs:
           name: inventory-test-report
           path: reports/${{ env.REPORT_NAME }}
 
+      # ──────────────────────  EXTRACT FAILURES  → summary.json  ──
       - name: Extract failures → summary.json
-        id: extract # <-- so we can read outputs
+        id: extract # ←-- now we have an ID
         run: |
           python - <<'PY'
-          import json, os, xml.etree.ElementTree as ET
+          import json, os, xml.etree.ElementTree as ET, pathlib
 
           root  = ET.parse("results.xml")
           fails = []
+
           for tc in root.iter("testcase"):
-              name = f"{tc.attrib['classname']}::{tc.attrib['name']}"
+              full = f"{tc.attrib['classname']}::{tc.attrib['name']}"
               if tc.find("failure") is not None or tc.find("error") is not None:
-                  fails.append(name)
+                  fails.append(full)
                   continue
-              skipped = tc.find("skipped")
-              if skipped is not None and "xpass" in skipped.attrib.get("message","").lower():
-                  fails.append(name)
+              skip = tc.find("skipped")
+              if skip is not None and "xpass" in skip.attrib.get("message","").lower():
+                  fails.append(full)
 
           summary = {
             "suite"       : "inventory",
@@ -65,13 +68,14 @@ jobs:
             "report_url"  : f"https://yasiqb89.github.io/gh-pages/{os.environ['REPORT_NAME']}",
             "failed_tests": fails
           }
-          with open("summary.json","w") as f: json.dump(summary,f)
+          pathlib.Path("summary.json").write_text(json.dumps(summary))
 
-          # expose count so later steps can use it
-          print(f"::set-output name=failed_count::{len(fails)}")
+          # -------- expose failed_count to later steps ----------
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"failed_count={len(fails)}\n")
           PY
 
-      # PUBLISH TO GH-PAGES
+      # ───────────────────────────  PUBLISH REPORT TO GH-PAGES ──
       - name: Configure Git
         run: |
           git config --global user.email "actions@github.com"
@@ -94,25 +98,25 @@ jobs:
           git commit -m "Add inventory report ${{ env.REPORT_NAME }}"
           git push origin gh-pages
 
-      # NOTIFY N8N
-      - name: Notify n8n (always → success payload)
+      # ─────────────────────────  NOTIFY n8n (two paths) ──
+      - name: Notify n8n (all tests passed)
         if: steps.extract.outputs.failed_count == '0'
         run: |
           curl -s -X POST -H 'Content-Type: application/json' \
-            --data @summary.json ${{ secrets.N8N_WEBHOOK_URL }}
+               --data @summary.json ${{ secrets.N8N_WEBHOOK_URL }}
 
-      - name: Notify n8n (failures present → bug payload)
+      - name: Notify n8n (failures present)
         if: steps.extract.outputs.failed_count != '0'
         run: |
           curl -s -X POST -H 'Content-Type: application/json' \
-            --data @summary.json ${{ secrets.N8N_BUG_WEBHOOK_URL }}
+               --data @summary.json ${{ secrets.N8N_BUG_WEBHOOK_URL }}
 
-      # SLACK SUMMARY
+      # ─────────────────────────────  SLACK SUMMARY ──
       - name: Send Slack notification
         if: always()
         run: |
           curl -X POST -H 'Content-type: application/json' \
-            --data '{
-              "text": "✅ *Inventory Tests Completed*\n📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
-            }' \
-            ${{ secrets.SLACK_WEBHOOK_URL }}
+               --data '{
+                 "text": "✅ *Inventory Tests Completed*\n📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
+               }' \
+               ${{ secrets.SLACK_WEBHOOK_URL }}
