@@ -33,12 +33,11 @@ jobs:
                 --html=reports/$REPORT_NAME --self-contained-html \
                 --junitxml=results.xml
 
-      - name: Upload Inventory Test Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: inventory-test-report
-          path: reports/${{ env.REPORT_NAME }}
+      # --------------- DEBUG: PRINT PART OF XML ---------------
+      - name: DEBUG - Show results.xml head
+        run: |
+          echo "--- HEAD of results.xml ---"
+          head -n 80 results.xml || true
 
       # BUILD SUMMARY.JSON WITH FAILURES
       - name: Extract failed tests → summary.json
@@ -73,7 +72,17 @@ jobs:
           pathlib.Path("summary.json").write_text(json.dumps(summary))
           PY
 
+      - name: Extract failed tests → summary.json
+        run: python scripts/extract_failures.py
+
       # PUBLISH TO GH-PAGES
+      - name: Upload Inventory Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: inventory-test-report
+          path: reports/${{ env.REPORT_NAME }}
+
       - name: Configure Git
         run: |
           git config --global user.email "actions@github.com"
