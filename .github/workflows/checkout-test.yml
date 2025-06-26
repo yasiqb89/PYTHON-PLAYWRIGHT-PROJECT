@@ -1,6 +1,6 @@
+# .github/workflows/checkout-tests.yml
 name: Checkout Tests
 
-# one dispatch
 on:
   workflow_dispatch:
 
@@ -9,7 +9,8 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout repository
+      # SET-UP
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -17,67 +18,74 @@ jobs:
         with:
           python-version: "3.10.13"
 
-      - name: Install Playwright dependencies
+      - name: Install requirements
         run: |
           python -m pip install --upgrade pip
           pip install pytest-playwright pytest-html
 
-      - name: Install Playwright Browsers
+      - name: Install Playwright browsers
         run: playwright install --with-deps
 
-      - name: Run Checkout Tests
+      # RUN TESTS & PRODUCE REPORTS
+      - name: Run checkout tests
         run: |
-          REPORT_NAME=checkout-report-${{ github.run_id }}.html
-          echo "REPORT_NAME=$REPORT_NAME" >> $GITHUB_ENV
-          pytest -m checkout tests --maxfail=1 --disable-warnings --html=reports/$REPORT_NAME --self-contained-html --junitxml=results.xml
+          REPORT_NAME="checkout-report-${{ github.run_id }}.html"
+          echo "REPORT_NAME=$REPORT_NAME" >> "$GITHUB_ENV"
 
-      - name: Upload Checkout Test Report
+          pytest -m checkout tests --maxfail=1 --disable-warnings \
+                --html="reports/$REPORT_NAME" --self-contained-html \
+                --junitxml="results.xml"
+
+      # UPLOAD HTML ARTIFACT
+      - name: Upload report artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: checkout-test-report
+          name: checkout-html
           path: reports/${{ env.REPORT_NAME }}
 
-      #GIT PUBLISH TO GH-PAGES
-      - name: Configure Git
-        run: |
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
-
-      - name: Clone gh-pages branch
-        run: |
-          git clone --branch gh-pages https://x-access-token:${{ secrets.GH_PAGES_TOKEN }}@github.com/yasiqb89/gh-pages.git gh-pages
-
-      - name: Copy report to gh-pages
-        run: |
-          cp reports/${{ env.REPORT_NAME }} gh-pages/${{ env.REPORT_NAME }}
-          cp reports/${{ env.REPORT_NAME }} gh-pages/index.html
-
+      # PUSH REPORT TO gh-pages
       - name: Push report to gh-pages
-        run: |
-          cd gh-pages
-          git add .
-          git commit -m "Add Checkout report ${{ env.REPORT_NAME }}"
-          git push origin gh-pages
-
-      #NOTIFY N8N THAT REPORT IS READY
-      - name: Notify n8n that report is ready
         if: always()
         run: |
-          curl -X POST -H 'Content-Type: application/json' \
-            -d "{
-                  \"suite\"      : \"checkout\",
-                  \"run_id\"     : \"${GITHUB_RUN_ID}\",
-                  \"report_url\" : \"https://yasiqb89.github.io/gh-pages/${REPORT_NAME}\"
-                }" \
-            ${{ secrets.N8N_WEBHOOK_URL }}
+          git config --global user.email "actions@github.com"
+          git config --global user.name  "GitHub Actions"
 
-      # MESSAGE TO SLACK
-      - name: Send Slack notification
+          git clone --branch gh-pages \
+            https://x-access-token:${{ secrets.GH_PAGES_TOKEN }}@github.com/yasiqb89/gh-pages.git gh-pages
+
+          cp "reports/${REPORT_NAME}" "gh-pages/${REPORT_NAME}"
+          cp "reports/${REPORT_NAME}" "gh-pages/index.html"
+
+          cd gh-pages
+          git add .
+          git commit -m "Add checkout report ${REPORT_NAME}"
+          git push origin gh-pages
+
+      # NOTIFY n8n
+      - name: Notify n8n
+        if: always()
+        run: |
+          cat > payload.json <<EOF
+          {
+            "suite"      : "checkout",
+            "run_id"     : "${GITHUB_RUN_ID}",
+            "report_url" : "https://yasiqb89.github.io/gh-pages/${REPORT_NAME}",
+            "run_url"    : "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "status"     : "${{ job.status }}"
+          }
+          EOF
+
+          curl -s -X POST -H 'Content-Type: application/json' \
+               --data @payload.json \
+               ${{ secrets.N8N_WEBHOOK_URL }}
+
+      # SLACK SUMMARY
+      - name: Slack summary
         if: always()
         run: |
           curl -X POST -H 'Content-type: application/json' \
           --data '{
-            "text": "✅ *Checkout Tests Completed*\n📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|View HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
+            "text": "🧪 *Checkout Tests* - *${{ job.status }}*\n📄 <https://yasiqb89.github.io/gh-pages/${{ env.REPORT_NAME }}|HTML Report>\n🔗 <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|GitHub Run Log>"
           }' \
           ${{ secrets.SLACK_WEBHOOK_URL }}
