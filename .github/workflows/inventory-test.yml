@@ -71,6 +71,7 @@ jobs:
             "suite"      : "inventory",
             "run_id"     : "${GITHUB_RUN_ID}",
             "report_url" : "https://yasiqb89.github.io/gh-pages/${REPORT_NAME}",
+            "run_url"    : "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
             "status"     : "${{ job.status }}"
           }
           EOF

@@ -177,11 +177,10 @@ def test_cart_clears_after_logout(page: Page):
 
 # Strictly fail a test scenario
 @pytest.mark.inventory
-@pytest.mark.xfail(reason="Demo - force a controlled failure", strict=False)
 def test_demo_known_issue():
     """
     Intentionally fails so the CI run produces a ‘failed’ entry
     without breaking the workflow.
     """
-    assert False, "Simulated defect – should appear in failed_tests list"
+    assert False
 
